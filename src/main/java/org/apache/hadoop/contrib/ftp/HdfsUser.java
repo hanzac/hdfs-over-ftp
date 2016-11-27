@@ -26,7 +26,7 @@ public class HdfsUser implements User, Serializable {
 
 	private boolean isEnabled = true;
 
-	private Authority[] authorities = new Authority[0];
+	private List<? extends Authority> authorities = new ArrayList<Authority>();
 
 	private ArrayList<String> groups = new ArrayList<String>();
 
@@ -123,17 +123,17 @@ public class HdfsUser implements User, Serializable {
 		password = pass;
 	}
 
-	public Authority[] getAuthorities() {
+	public List<? extends Authority> getAuthorities() {
 		if (authorities != null) {
-			return authorities.clone();
+			return authorities;
 		} else {
 			return null;
 		}
 	}
 
-	public void setAuthorities(Authority[] authorities) {
+	public void setAuthorities(List<Authority> authorities) {
 		if (authorities != null) {
-			this.authorities = authorities.clone();
+			this.authorities = authorities;
 		} else {
 			this.authorities = null;
 		}
@@ -195,7 +195,7 @@ public class HdfsUser implements User, Serializable {
 	 * {@inheritDoc}
 	 */
 	public AuthorizationRequest authorize(AuthorizationRequest request) {
-		Authority[] authorities = getAuthorities();
+		List<? extends Authority> authorities = getAuthorities();
 
 		// check for no authorities at all
 		if (authorities == null) {
@@ -203,8 +203,8 @@ public class HdfsUser implements User, Serializable {
 		}
 
 		boolean someoneCouldAuthorize = false;
-		for (int i = 0; i < authorities.length; i++) {
-			Authority authority = authorities[i];
+		for (int i = 0; i < authorities.size(); i++) {
+			Authority authority = authorities.get(i);
 
 			if (authority.canAuthorize(request)) {
 				someoneCouldAuthorize = true;
@@ -229,15 +229,15 @@ public class HdfsUser implements User, Serializable {
 	/**
 	 * {@inheritDoc}
 	 */
-	public Authority[] getAuthorities(Class<? extends Authority> clazz) {
+	public List<Authority> getAuthorities(Class<? extends Authority> clazz) {
 		List<Authority> selected = new ArrayList<Authority>();
 
-		for (int i = 0; i < authorities.length; i++) {
-			if (authorities[i].getClass().equals(clazz)) {
-				selected.add(authorities[i]);
+		for (int i = 0; i < authorities.size(); i++) {
+			if (authorities.get(i).getClass().equals(clazz)) {
+				selected.add(authorities.get(i));
 			}
 		}
 
-		return selected.toArray(new Authority[0]);
+		return selected;
 	}
 }

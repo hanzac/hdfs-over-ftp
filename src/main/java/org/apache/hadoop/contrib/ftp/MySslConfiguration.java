@@ -1,10 +1,10 @@
 package org.apache.hadoop.contrib.ftp;
 
 import org.apache.ftpserver.FtpServerConfigurationException;
-import org.apache.ftpserver.ssl.AliasKeyManager;
 import org.apache.ftpserver.ssl.ClientAuth;
-import org.apache.ftpserver.ssl.ExtendedAliasKeyManager;
 import org.apache.ftpserver.ssl.SslConfiguration;
+import org.apache.ftpserver.ssl.impl.AliasKeyManager;
+import org.apache.ftpserver.ssl.impl.ExtendedAliasKeyManager;
 import org.apache.ftpserver.util.ClassUtils;
 import org.apache.ftpserver.util.IoUtils;
 import org.slf4j.Logger;
@@ -430,5 +430,9 @@ public class MySslConfiguration implements SslConfiguration {
 	 */
 	public void setKeyAlias(String keyAlias) {
 		this.keyAlias = keyAlias;
+	}
+
+	public SSLSocketFactory getSocketFactory() throws GeneralSecurityException {
+		return null;
 	}
 }

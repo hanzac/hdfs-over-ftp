@@ -1,6 +1,6 @@
 package org.apache.hadoop.contrib.ftp;
 
-import org.apache.ftpserver.ftplet.FileObject;
+import org.apache.ftpserver.ftplet.FtpFile;
 import org.apache.ftpserver.ftplet.User;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -14,11 +14,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class implements all actions to HDFS
  */
-public class HdfsFileObject implements FileObject {
+public class HdfsFileObject implements FtpFile {
 
 	private final Logger log = LoggerFactory.getLogger(HdfsFileObject.class);
 
@@ -26,7 +28,7 @@ public class HdfsFileObject implements FileObject {
 	private HdfsUser user;
 
 	/**
-	 * Constructs HdfsFileObject from path
+	 * Constructs HdfsFtpFile from path
 	 *
 	 * @param path path to represent object
 	 * @param user accessor of the object
@@ -41,7 +43,7 @@ public class HdfsFileObject implements FileObject {
 	 *
 	 * @return full name of the object
 	 */
-	public String getFullName() {
+	public String getAbsolutePath() {
 		return path.toString();
 	}
 
@@ -50,8 +52,8 @@ public class HdfsFileObject implements FileObject {
 	 *
 	 * @return short name of the object
 	 */
-	public String getShortName() {
-		String full = getFullName();
+	public String getName() {
+		String full = getAbsolutePath();
 		int pos = full.lastIndexOf("/");
 		if (pos == 0) {
 			return "/";
@@ -137,7 +139,7 @@ public class HdfsFileObject implements FileObject {
 	 *
 	 * @return true if the user can read the object
 	 */
-	public boolean hasReadPermission() {
+	public boolean isReadable() {
 		try {
 			FsPermission permissions = getPermissions();
 			if (user.getName().equals(getOwnerName())) {
@@ -179,7 +181,7 @@ public class HdfsFileObject implements FileObject {
 	 *
 	 * @return true if the user has write permission on the object
 	 */
-	public boolean hasWritePermission() {
+	public boolean isWritable() {
 		try {
 			FsPermission permissions = getPermissions();
 			if (user.getName().equals(getOwnerName())) {
@@ -201,7 +203,7 @@ public class HdfsFileObject implements FileObject {
 			log.debug("PERMISSIONS: " + path + " - " + " write denied");
 			return false;
 		} catch (IOException e) {
-			return getParent().hasWritePermission();
+			return getParent().isWritable();
 		}
 	}
 
@@ -210,8 +212,8 @@ public class HdfsFileObject implements FileObject {
 	 *
 	 * @return true if the user has delete permission on the object
 	 */
-	public boolean hasDeletePermission() {
-		return hasWritePermission();
+	public boolean isRemovable() {
+		return isWritable();
 	}
 
 	/**
@@ -295,7 +297,7 @@ public class HdfsFileObject implements FileObject {
 	 */
 	public boolean mkdir() {
 
-		if (!hasWritePermission()) {
+		if (!isWritable()) {
 			log.debug("No write permission : " + path);
 			return false;
 		}
@@ -330,13 +332,13 @@ public class HdfsFileObject implements FileObject {
 	/**
 	 * Move the object to another location
 	 *
-	 * @param fileObject location to move the object
+	 * @param FtpFile location to move the object
 	 * @return true if the object is moved successfully
 	 */
-	public boolean move(FileObject fileObject) {
+	public boolean move(FtpFile FtpFile) {
 		try {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
-			dfs.rename(path, new Path(fileObject.getFullName()));
+			dfs.rename(path, new Path(FtpFile.getAbsolutePath()));
 			return true;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -349,9 +351,9 @@ public class HdfsFileObject implements FileObject {
 	 *
 	 * @return List of files in the directory
 	 */
-	public FileObject[] listFiles() {
+	public List<? extends FtpFile> listFiles() {
 
-		if (!hasReadPermission()) {
+		if (!isReadable()) {
 			log.debug("No read permission : " + path);
 			return null;
 		}
@@ -360,11 +362,11 @@ public class HdfsFileObject implements FileObject {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			FileStatus fileStats[] = dfs.listStatus(path);
 
-			FileObject fileObjects[] = new FileObject[fileStats.length];
+			List<FtpFile> FtpFiles = new ArrayList<FtpFile>();
 			for (int i = 0; i < fileStats.length; i++) {
-				fileObjects[i] = new HdfsFileObject(fileStats[i].getPath().toString(), user);
+				FtpFiles.add(new HdfsFileObject(fileStats[i].getPath().toString(), user));
 			}
-			return fileObjects;
+			return FtpFiles;
 		} catch (IOException e) {
 			log.debug("", e);
 			return null;
@@ -381,7 +383,7 @@ public class HdfsFileObject implements FileObject {
 	public OutputStream createOutputStream(long l) throws IOException {
 
 		// permission check
-		if (!hasWritePermission()) {
+		if (!isWritable()) {
 			throw new IOException("No write permission : " + path);
 		}
 
@@ -405,7 +407,7 @@ public class HdfsFileObject implements FileObject {
 	 */
 	public InputStream createInputStream(long l) throws IOException {
 		// permission check
-		if (!hasReadPermission()) {
+		if (!isReadable()) {
 			throw new IOException("No read permission : " + path);
 		}
 		try {
@@ -416,5 +418,13 @@ public class HdfsFileObject implements FileObject {
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	public boolean setLastModified(long time) {
+		return false;
+	}
+
+	public Object getPhysicalFile() {
+		return path;
 	}
 }
