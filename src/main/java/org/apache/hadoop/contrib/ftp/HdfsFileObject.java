@@ -80,8 +80,8 @@ public class HdfsFileObject implements FtpFile {
 			log.debug("is directory? : " + path);
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			FileStatus fs = dfs.getFileStatus(path);
-			return fs.isDir();
-		} catch (IOException e) {
+			return fs.isDirectory();
+		} catch (Exception e) {
 			log.debug(path + " is not dir", e);
 			return false;
 		}
@@ -93,14 +93,9 @@ public class HdfsFileObject implements FtpFile {
 	 * @return HDFS permissions as a FsPermission instance
 	 * @throws IOException if path doesn't exist so we get permissions of parent object in that case
 	 */
-	private FsPermission getPermissions() throws IOException {
-//        try {
+	private FsPermission getPermissions() throws Exception {
 		DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 		return dfs.getFileStatus(path).getPermission();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            return null;
-//        }
 	}
 
 	/**
@@ -112,7 +107,7 @@ public class HdfsFileObject implements FtpFile {
 		try {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			return dfs.isFile(path);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			log.debug(path + " is not file", e);
 			return false;
 		}
@@ -128,7 +123,7 @@ public class HdfsFileObject implements FtpFile {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			dfs.getFileStatus(path);
 			return true;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			//   log.debug(path + " does not exist", e);
 			return false;
 		}
@@ -160,7 +155,7 @@ public class HdfsFileObject implements FtpFile {
 			}
 			log.debug("PERMISSIONS: " + path + " - " + " read denied");
 			return false;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
 			return false;
 		}
@@ -202,7 +197,7 @@ public class HdfsFileObject implements FtpFile {
 			}
 			log.debug("PERMISSIONS: " + path + " - " + " write denied");
 			return false;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			return getParent().isWritable();
 		}
 	}
@@ -226,7 +221,7 @@ public class HdfsFileObject implements FtpFile {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			FileStatus fs = dfs.getFileStatus(path);
 			return fs.getOwner();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -242,7 +237,7 @@ public class HdfsFileObject implements FtpFile {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			FileStatus fs = dfs.getFileStatus(path);
 			return fs.getGroup();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -267,7 +262,7 @@ public class HdfsFileObject implements FtpFile {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			FileStatus fs = dfs.getFileStatus(path);
 			return fs.getModificationTime();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return 0;
 		}
@@ -284,7 +279,7 @@ public class HdfsFileObject implements FtpFile {
 			FileStatus fs = dfs.getFileStatus(path);
 			log.info("getSize(): " + path + " : " + fs.getLen());
 			return fs.getLen();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return 0;
 		}
@@ -296,7 +291,6 @@ public class HdfsFileObject implements FtpFile {
 	 * @return true if dir is created
 	 */
 	public boolean mkdir() {
-
 		if (!isWritable()) {
 			log.debug("No write permission : " + path);
 			return false;
@@ -304,10 +298,8 @@ public class HdfsFileObject implements FtpFile {
 
 		try {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
-			dfs.mkdirs(path);
-			dfs.setOwner(path, user.getName(), user.getMainGroup());
-			return true;
-		} catch (IOException e) {
+			return dfs.mkdirs(path);
+		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
 		}
@@ -321,9 +313,8 @@ public class HdfsFileObject implements FtpFile {
 	public boolean delete() {
 		try {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
-			dfs.delete(path, true);
-			return true;
-		} catch (IOException e) {
+			return dfs.delete(path, true);
+		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
 		}
@@ -340,7 +331,7 @@ public class HdfsFileObject implements FtpFile {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			dfs.rename(path, new Path(FtpFile.getAbsolutePath()));
 			return true;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return false;
 		}
@@ -367,7 +358,7 @@ public class HdfsFileObject implements FtpFile {
 				FtpFiles.add(new HdfsFileObject(fileStats[i].getPath().toString(), user));
 			}
 			return FtpFiles;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			log.debug("", e);
 			return null;
 		}
@@ -381,7 +372,6 @@ public class HdfsFileObject implements FtpFile {
 	 * @throws IOException
 	 */
 	public OutputStream createOutputStream(long l) throws IOException {
-
 		// permission check
 		if (!isWritable()) {
 			throw new IOException("No write permission : " + path);
@@ -392,7 +382,7 @@ public class HdfsFileObject implements FtpFile {
 			FSDataOutputStream out = dfs.create(path);
 			dfs.setOwner(path, user.getName(), user.getMainGroup());
 			return out;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -414,7 +404,7 @@ public class HdfsFileObject implements FtpFile {
 			DistributedFileSystem dfs = HdfsOverFtpSystem.getDfs();
 			FSDataInputStream in = dfs.open(path);
 			return in;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}

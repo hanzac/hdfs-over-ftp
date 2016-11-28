@@ -2,12 +2,14 @@ package org.apache.hadoop.contrib.ftp;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * Class to store DFS connection
@@ -24,15 +26,21 @@ public class HdfsOverFtpSystem {
 	private final static Logger log = LoggerFactory.getLogger(HdfsOverFtpSystem.class);
 
 
-	private static void hdfsInit() throws IOException {
-		dfs = new DistributedFileSystem();
-		Configuration conf = new Configuration();
-		conf.set("hadoop.job.ugi", superuser + "," + supergroup);
-		try {
-			dfs.initialize(new URI(HDFS_URI), conf);
-		} catch (URISyntaxException e) {
-			log.error("DFS Initialization error", e);
-		}
+	private static void hdfsInit() throws IOException, InterruptedException {
+		UserGroupInformation ugi = UserGroupInformation.createProxyUser(superuser, UserGroupInformation.getLoginUser());
+		dfs = ugi.doAs(new PrivilegedExceptionAction<DistributedFileSystem>() {
+			public DistributedFileSystem run() throws Exception {
+				DistributedFileSystem dfs = new DistributedFileSystem();
+				Configuration conf = new Configuration();
+				conf.set("hadoop.job.ugi", superuser + "," + supergroup);
+				try {
+					dfs.initialize(new URI(HDFS_URI), conf);
+				} catch (URISyntaxException e) {
+					log.error("DFS Initialization error", e);
+				}
+				return dfs;
+			}
+		});
 	}
 
 	public static void setHDFS_URI(String HDFS_URI) {
@@ -44,8 +52,9 @@ public class HdfsOverFtpSystem {
 	 *
 	 * @return dfs
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	public static DistributedFileSystem getDfs() throws IOException {
+	public static DistributedFileSystem getDfs() throws IOException, InterruptedException {
 		if (dfs == null) {
 			hdfsInit();
 		}
